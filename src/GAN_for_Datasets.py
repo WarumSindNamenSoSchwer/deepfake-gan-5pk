@@ -5,25 +5,20 @@ import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
 import time
+from datasets import load_dataset
 
-# Daten laden und vorbereiten
-# Get absolute path to the "Bilder" directory, no matter where the script is run from
-script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the running script
-image_dir = os.path.abspath(os.path.join(script_dir, "../Bilder"))
+# Dataset laden
+dataset = load_dataset("huggan/cats", split="train")
 image_size = (64, 64)
 images = []
 
-for filename in os.listdir(image_dir):
-    if filename.endswith((".png", ".jpg", ".jpeg")):
-        img_path = os.path.join(image_dir, filename)
-        try:
-            img = Image.open(img_path).convert('L')
-            img = img.resize(image_size)
-            img_array = np.array(img).astype('float32')
-            img_array = (img_array - 127.5) / 127.5
-            images.append(img_array)
-        except Exception as e:
-            print(f"Fehler beim Laden von {filename}: {e}")
+# Bilder aus dem Datensatz verarbeiten
+for item in dataset:
+    img = Image.fromarray(item["image"]).convert('L')  # In Graustufen umwandeln
+    img = img.resize(image_size)
+    img_array = np.array(img).astype('float32')
+    img_array = (img_array - 127.5) / 127.5  # Werte normalisieren (-1 bis 1)
+    images.append(img_array)
 
 input_images = np.array(images)
 
@@ -140,7 +135,7 @@ def train_step(images):
 # Create a single project folder when the script starts
 project_timestamp = time.strftime("%d.%m.%Y_%H.%M")
 script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the running script
-project_dir = os.path.abspath(os.path.join(script_dir, f"../Generierte_Bilder/{project_timestamp}"))
+project_dir = os.path.abspath(os.path.join(script_dir, f"../Generierte_Bilder_Cats/{project_timestamp}"))
 os.makedirs(project_dir, exist_ok=True)
 
 # Funktion zum Generieren und Anzeigen von Bildern
