@@ -3,9 +3,18 @@ import requests
 from serpapi import GoogleSearch
 from PIL import Image
 from io import BytesIO
+import os
+from dotenv import load_dotenv
 
-# Get your free SerpAPI key from https://serpapi.com/
-SERPAPI_KEY = "2ce52c82049a918463f66e2e0c24f80d1c5d596c7ee2226c46ca5489d16107b2"
+# Get absolute path to the Env folder
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Location of src
+env_path = os.path.abspath(os.path.join(script_dir, "../Env/SERPAPI_KEY.env")) 
+
+# Load environment variables
+loaded = load_dotenv(env_path)
+
+SERPAPI_KEY = os.getenv("API_KEY")
+
 
 def fetch_google_images(query, max_images=5):
     """Fetch image URLs from Google Images using SerpAPI."""
