@@ -132,28 +132,34 @@ def train_step(images):
 
     return gen_loss, disc_loss
 
+
+
+
+# Create a single project folder when the script starts
+project_timestamp = time.strftime("%d.%m.%Y_%H.%M")
+project_dir = f"./Generierte_Bilder/{project_timestamp}"
+os.makedirs(project_dir, exist_ok=True)
+
 # Funktion zum Generieren und Anzeigen von Bildern
 def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10, 10)):
     noise = np.random.normal(0, 1, size=[examples, noise_dim])
     generated_images = generator.predict(noise)
     generated_images = generated_images.reshape(examples, 64, 64)
 
-    # Generate timestamped directory name using time module
-    timestamp = time.strftime("%d.%m.%Y_%H.%M")
-    save_dir = f"./Generierte_Bilder/{timestamp}_epoche_{epoch}"
-
-    # Create directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
-
     plt.figure(figsize=figsize)
     for i in range(generated_images.shape[0]):
         plt.subplot(dim[0], dim[1], i+1)
         plt.imshow(generated_images[i], interpolation='nearest', cmap='gray_r')
         plt.axis('off')
+
     plt.tight_layout()
-    save_path = os.path.join(save_dir, f"Bild_bei_epoche_{epoch:04d}.png")
+
+    # Always save images in the global `project_dir`
+    save_path = os.path.join(project_dir, f"Bild_bei_Epoche_{epoch:04d}.png")
     plt.savefig(save_path)
     plt.close()
+
+
 
 # Trainingsschleife
 def train(dataset, epochs):
@@ -174,12 +180,12 @@ def train(dataset, epochs):
         disc_loss = sum(disc_loss_list) / len(disc_loss_list)
 
         print('Epoch {}, gen_loss={}, disc_loss={}, time={}'.format(epoch+1, gen_loss, disc_loss, time.time()-start))
-        if (epoch + 1) % 1 == 0:
+        if (epoch + 1) % 25 == 0:
             plot_generated_images(epoch, generator)
 
 
 
-EPOCHS = 2500
+EPOCHS = 1000
 
 # Training starten
 train(input_images, EPOCHS)
