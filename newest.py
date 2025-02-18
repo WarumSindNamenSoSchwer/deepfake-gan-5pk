@@ -31,7 +31,7 @@ if len(input_images) == 0:
 print("Form der Eingabebilder:", input_images.shape)
 
 # Hyperparameter
-noise_dim = 100
+noise_dim = 100 #Dimension des Rauschens
 BATCH_SIZE = len(images)  # Die Batch-Größe sollte der Anzahl der Bilder entsprechen
 
 # Generator-Modell erstellen
@@ -138,13 +138,21 @@ def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10
     generated_images = generator.predict(noise)
     generated_images = generated_images.reshape(examples, 64, 64)
 
+    # Generate timestamped directory name using time module
+    timestamp = time.strftime("%d.%m.%Y_%H.%M")
+    save_dir = f"./generated_images/{timestamp}_epoch_{epoch}"
+
+    # Create directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+
     plt.figure(figsize=figsize)
     for i in range(generated_images.shape[0]):
         plt.subplot(dim[0], dim[1], i+1)
         plt.imshow(generated_images[i], interpolation='nearest', cmap='gray_r')
         plt.axis('off')
     plt.tight_layout()
-    plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
+    save_path = os.path.join(save_dir, f"image_at_epoch_{epoch:04d}.png")
+    plt.savefig(save_path)
     plt.close()
 
 # Trainingsschleife
@@ -171,7 +179,7 @@ def train(dataset, epochs):
 
 
 
-EPOCHS = 150
+EPOCHS = 10
 
 # Training starten
 train(input_images, EPOCHS)
