@@ -153,7 +153,10 @@ os.makedirs(project_dir, exist_ok=True)
 def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10, 10)):
     noise = np.random.normal(0, 1, size=[examples, noise_dim])
     generated_images = generator.predict(noise)
-    generated_images = generated_images.reshape(examples, 64, 64)
+
+
+    # Fix the reshape: Use the correct image size (128 instead of 64)
+    generated_images = generated_images.reshape(examples, 128, 128)
 
     plt.figure(figsize=figsize)
     for i in range(generated_images.shape[0]):
@@ -172,6 +175,9 @@ def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10
 
 # Trainingsschleife
 def train(dataset, epochs):
+
+    print("\n\nStarting training...\n\n")
+
     for epoch in range(epochs):
         start = time.time()
         gen_loss_list = []
