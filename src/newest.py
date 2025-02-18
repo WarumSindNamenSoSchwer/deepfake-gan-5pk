@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import time
 
 # Daten laden und vorbereiten
-image_dir = "Bilder"
+# Get absolute path to the "Bilder" directory, no matter where the script is run from
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the running script
+image_dir = os.path.abspath(os.path.join(script_dir, "../Bilder"))
 image_size = (64, 64)
 images = []
 
@@ -137,7 +139,8 @@ def train_step(images):
 
 # Create a single project folder when the script starts
 project_timestamp = time.strftime("%d.%m.%Y_%H.%M")
-project_dir = f"./Generierte_Bilder/{project_timestamp}"
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the running script
+project_dir = os.path.abspath(os.path.join(script_dir, f"../Generierte_Bilder/{project_timestamp}"))
 os.makedirs(project_dir, exist_ok=True)
 
 # Funktion zum Generieren und Anzeigen von Bildern
