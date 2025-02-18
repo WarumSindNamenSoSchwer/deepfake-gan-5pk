@@ -194,7 +194,7 @@ def train(dataset, epochs):
 
 
 
-EPOCHS = 3000
+EPOCHS = 1000
 
 # Training starten
 train(input_images, EPOCHS)
