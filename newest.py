@@ -174,7 +174,7 @@ def train(dataset, epochs):
         disc_loss = sum(disc_loss_list) / len(disc_loss_list)
 
         print('Epoch {}, gen_loss={}, disc_loss={}, time={}'.format(epoch+1, gen_loss, disc_loss, time.time()-start))
-        if (epoch + 1) % 15 == 0:
+        if (epoch + 1) % 1 == 0:
             plot_generated_images(epoch, generator)
 
 
