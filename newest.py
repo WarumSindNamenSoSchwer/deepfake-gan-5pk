@@ -140,7 +140,7 @@ def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10
 
     # Generate timestamped directory name using time module
     timestamp = time.strftime("%d.%m.%Y_%H.%M")
-    save_dir = f"./generated_images/{timestamp}_epoch_{epoch}"
+    save_dir = f"./Generierte_Bilder/{timestamp}_epoche_{epoch}"
 
     # Create directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
@@ -151,7 +151,7 @@ def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10
         plt.imshow(generated_images[i], interpolation='nearest', cmap='gray_r')
         plt.axis('off')
     plt.tight_layout()
-    save_path = os.path.join(save_dir, f"image_at_epoch_{epoch:04d}.png")
+    save_path = os.path.join(save_dir, f"Bild_bei_epoche_{epoch:04d}.png")
     plt.savefig(save_path)
     plt.close()
 
@@ -179,7 +179,7 @@ def train(dataset, epochs):
 
 
 
-EPOCHS = 10
+EPOCHS = 2500
 
 # Training starten
 train(input_images, EPOCHS)
