@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
 import time
+import glob
 
 # Daten laden und vorbereiten
 # Get absolute path to the "Bilder" directory, no matter where the script is run from
@@ -35,6 +36,7 @@ print("Form der Eingabebilder:", input_images.shape)
 # Hyperparameter
 noise_dim = 100 #Dimension des Rauschens
 BATCH_SIZE = len(images)  # Die Batch-Größe sollte der Anzahl der Bilder entsprechen
+EPOCHS = 1000  #Definieren wir hier, damit es später leichter zugänglich ist.
 
 # Generator-Modell erstellen
 def make_generator():
@@ -95,13 +97,6 @@ def make_discriminator():
 
     return model
 
-# Modelle erstellen
-generator = make_generator()
-discriminator = make_discriminator()
-
-# Optimierer
-generator_optimizer = tf.keras.optimizers.Adam(1e-4)
-discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 
 # Verlustfunktionen
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -140,20 +135,18 @@ def train_step(images):
 
     return gen_loss, disc_loss
 
-
-
-
 # Create a single project folder when the script starts
 project_timestamp = time.strftime("%d.%m.%Y_%H.%M")
 script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the running script
 project_dir = os.path.abspath(os.path.join(script_dir, f"../Generierte_Bilder/{project_timestamp}"))
 os.makedirs(project_dir, exist_ok=True)
+checkpoint_dir = os.path.join(project_dir, "checkpoints") #Checkpoint Ordner innerhalb des Projektordners
+os.makedirs(checkpoint_dir, exist_ok=True) #erstellt den Ordner
 
 # Funktion zum Generieren und Anzeigen von Bildern
-def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10, 10)):
+def plot_generated_images(epoch, generator, project_dir, examples=16, dim=(4, 4), figsize=(10, 10)):
     noise = np.random.normal(0, 1, size=[examples, noise_dim])
     generated_images = generator.predict(noise)
-
 
     # Fix the reshape: Use the correct image size (128 instead of 64)
     generated_images = generated_images.reshape(examples, 128, 128)
@@ -166,19 +159,24 @@ def plot_generated_images(epoch, generator, examples=16, dim=(4, 4), figsize=(10
 
     plt.tight_layout()
 
-    # Always save images in the global `project_dir`
+    # Always save images in the global project_dir
     save_path = os.path.join(project_dir, f"Bild_bei_Epoche_{epoch:04d}.png")
     plt.savefig(save_path)
     plt.close()
 
+def save_checkpoint(epoch, generator, discriminator, generator_optimizer, discriminator_optimizer, checkpoint_dir):
+    checkpoint_path = os.path.join(checkpoint_dir, "cp-{epoch:04d}.ckpt")
+    tf.saved_model.save(generator, checkpoint_path.format(epoch=epoch))
+    tf.saved_model.save(discriminator, checkpoint_path.format(epoch=epoch))
+    #Speichern der Optimierer Zustände ist komplexer und hier nicht implementiert.
 
+    print(f"Checkpoint gespeichert für Epoche {epoch} unter {checkpoint_path}")
 
 # Trainingsschleife
-def train(dataset, epochs):
-
+def train(dataset, epochs, project_dir, checkpoint_dir, initial_epoch=0):
     print("\n\nStarting training...\n\n")
 
-    for epoch in range(epochs):
+    for epoch in range(initial_epoch, epochs):
         start = time.time()
         gen_loss_list = []
         disc_loss_list = []
@@ -195,20 +193,64 @@ def train(dataset, epochs):
         disc_loss = sum(disc_loss_list) / len(disc_loss_list)
 
         print('Epoch {}, gen_loss={}, disc_loss={}, time={}'.format(epoch+1, gen_loss, disc_loss, time.time()-start))
+
         if (epoch + 1) % 25 == 0:
-            plot_generated_images(epoch, generator)
+            plot_generated_images(epoch, generator, project_dir)
+
+        #Checkpoint Speichern
+        save_checkpoint(epoch, generator, discriminator, generator_optimizer, discriminator_optimizer, checkpoint_dir)
+
+#Modelle erstellen
+generator = make_generator()
+discriminator = make_discriminator()
+
+#Optimierer
+generator_optimizer = tf.keras.optimizers.Adam(1e-4)
+discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
+
+#Checkpoints
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
+                                 discriminator_optimizer=discriminator_optimizer,
+                                 generator=generator,
+                                 discriminator=discriminator)
+
+# Letzten Checkpoint laden
+latest = tf.train.latest_checkpoint(checkpoint_dir)
+if latest:
+    print("Letzten Checkpoint gefunden: ", latest)
+else:
+    print("Kein Checkpoint gefunden. Starte von vorn.")
+
+# Trainingsschleife starten oder fortsetzen
+def start_training(input_images, EPOCHS, project_dir, checkpoint_dir):
+    # Frage, ob das Training fortgesetzt werden soll
+    answer = input("Soll das Training fortgesetzt werden? (j/n): ")
+
+    if answer.lower() == 'j':
+        latest = tf.train.latest_checkpoint(checkpoint_dir)
+        if latest:
+            print("Lade Checkpoint: ", latest)
+            checkpoint.restore(latest)
+            # Extrahiere die Epoche aus dem Checkpoint-Pfad
+            initial_epoch = int(latest.split('-')[-1].split('.')[0])
+            print(f"Fortsetzen des Trainings ab Epoche {initial_epoch}")
+            train(input_images, EPOCHS, project_dir, checkpoint_dir, initial_epoch=initial_epoch)
+        else:
+            print("Kein Checkpoint gefunden. Starte Training von vorn.")
+            train(input_images, EPOCHS, project_dir, checkpoint_dir)
+    else:
+        print("Starte Training von vorn.")
+        train(input_images, EPOCHS, project_dir, checkpoint_dir)
 
 
-
-EPOCHS = 1000
-
-# Training starten
-train(input_images, EPOCHS)
+#Training starten
+start_training(input_images, EPOCHS, project_dir, checkpoint_dir)
 
 # Generiere ein finales Bild nach dem Training
 noise = np.random.normal(0, 1, size=[1, noise_dim])
 generated_image = generator.predict(noise)
-generated_image = generated_image.reshape(64, 64)
+generated_image = generated_image.reshape(128, 128)
 plt.imshow(generated_image, interpolation='nearest', cmap='gray_r')
 plt.axis('off')
 plt.show()
