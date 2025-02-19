@@ -39,11 +39,15 @@ BATCH_SIZE = len(images)  # Die Batch-Größe sollte der Anzahl der Bilder entsp
 # Generator-Modell erstellen
 def make_generator():
     model = keras.Sequential([
-        keras.layers.Dense(8*8*512, use_bias=False, input_shape=(noise_dim,)),  # 8x8 statt 4x4
+        keras.layers.Dense(16*16*1024, use_bias=False, input_shape=(noise_dim,)),  # Größere Startauflösung
         keras.layers.BatchNormalization(),
         keras.layers.LeakyReLU(),
 
-        keras.layers.Reshape((8, 8, 512)),  # Start bei 8x8 statt 4x4
+        keras.layers.Reshape((16, 16, 1024)),
+
+        keras.layers.Conv2DTranspose(512, (5, 5), strides=(2, 2), padding='same', use_bias=False),
+        keras.layers.BatchNormalization(),
+        keras.layers.LeakyReLU(),
 
         keras.layers.Conv2DTranspose(256, (5, 5), strides=(2, 2), padding='same', use_bias=False),
         keras.layers.BatchNormalization(),
@@ -69,8 +73,7 @@ def make_generator():
 # Diskriminator-Modell erstellen
 def make_discriminator():
     model = keras.Sequential([
-        keras.layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
-                            input_shape=(128, 128, 1)),  # ✅ Hier 128x128 setzen
+        keras.layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same', input_shape=(512, 512, 1)),
         keras.layers.LeakyReLU(alpha=0.2),
         keras.layers.Dropout(0.25),
 
@@ -85,6 +88,11 @@ def make_discriminator():
         keras.layers.Dropout(0.25),
 
         keras.layers.Conv2D(512, (5, 5), strides=(2, 2), padding='same'),
+        keras.layers.BatchNormalization(),
+        keras.layers.LeakyReLU(alpha=0.2),
+        keras.layers.Dropout(0.25),
+
+        keras.layers.Conv2D(1024, (5, 5), strides=(2, 2), padding='same'),
         keras.layers.BatchNormalization(),
         keras.layers.LeakyReLU(alpha=0.2),
         keras.layers.Dropout(0.25),
@@ -207,8 +215,10 @@ train(input_images, EPOCHS)
 
 # Generiere ein finales Bild nach dem Training
 noise = np.random.normal(0, 1, size=[1, noise_dim])
-generated_image = generator.predict(noise)
-generated_image = generated_image.reshape(64, 64)
-plt.imshow(generated_image, interpolation='nearest', cmap='gray_r')
+generated_image = generator.predict(noise)[0]  # Erstes Bild auswählen
+generated_image = (generated_image + 1) / 2  # Werte von [-1,1] auf [0,1] normalisieren
+
+plt.figure(figsize=(8, 8))
+plt.imshow(generated_image, cmap='gray_r')
 plt.axis('off')
 plt.show()
