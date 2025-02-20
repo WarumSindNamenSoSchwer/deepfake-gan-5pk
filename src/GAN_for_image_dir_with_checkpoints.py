@@ -6,6 +6,7 @@ from tensorflow import keras
 import matplotlib.pyplot as plt
 import time
 import glob
+from datetime import timedelta
 
 # Daten laden und vorbereiten
 # Get absolute path to the "Bilder" directory, no matter where the script is run from
@@ -164,13 +165,25 @@ def plot_generated_images(epoch, generator, project_dir, examples=16, dim=(4, 4)
     plt.savefig(save_path)
     plt.close()
 
-def save_checkpoint(epoch, generator, discriminator, generator_optimizer, discriminator_optimizer, checkpoint_dir):
-    checkpoint_path = os.path.join(checkpoint_dir, "cp-{epoch:04d}.ckpt")
-    tf.saved_model.save(generator, checkpoint_path.format(epoch=epoch))
-    tf.saved_model.save(discriminator, checkpoint_path.format(epoch=epoch))
-    #Speichern der Optimierer Zustände ist komplexer und hier nicht implementiert.
+# Funktion zum Löschen alter Checkpoints
+def delete_old_checkpoints(checkpoint_dir, days=3):
+    current_time = time.now()
+    for filename in os.listdir(checkpoint_dir):
+        file_path = os.path.join(checkpoint_dir, filename)
+        file_modified = time.fromtimestamp(os.path.getmtime(file_path))
+        if current_time - file_modified > timedelta(days=days):
+            os.remove(file_path)
+            print(f"Gelöschter alter Checkpoint: {filename}")
 
-    print(f"Checkpoint gespeichert für Epoche {epoch} unter {checkpoint_path}")
+# Funktion zum Speichern von Checkpoints
+def save_checkpoint(epoch, generator, discriminator, generator_optimizer, discriminator_optimizer, checkpoint_dir):
+    generator.save(os.path.join(checkpoint_dir, f"generator_epoch_{epoch:04d}.h5"))
+    discriminator.save(os.path.join(checkpoint_dir, f"discriminator_epoch_{epoch:04d}.h5"))
+
+    print(f"Checkpoint gespeichert für Epoche {epoch} unter {checkpoint_dir}")
+    
+    # Lösche alte Checkpoints
+    delete_old_checkpoints(checkpoint_dir)
 
 # Trainingsschleife
 def train(dataset, epochs, project_dir, checkpoint_dir, initial_epoch=0):
@@ -197,8 +210,9 @@ def train(dataset, epochs, project_dir, checkpoint_dir, initial_epoch=0):
         if (epoch + 1) % 25 == 0:
             plot_generated_images(epoch, generator, project_dir)
 
-        #Checkpoint Speichern
-        save_checkpoint(epoch, generator, discriminator, generator_optimizer, discriminator_optimizer, checkpoint_dir)
+        # Checkpoint Speichern (alle 50 Epochen)
+        if (epoch + 1) % 50 == 0:
+            save_checkpoint(epoch, generator, discriminator, generator_optimizer, discriminator_optimizer, checkpoint_dir)
 
 #Modelle erstellen
 generator = make_generator()
@@ -208,19 +222,35 @@ discriminator = make_discriminator()
 generator_optimizer = tf.keras.optimizers.Adam(1e-4)
 discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 
-#Checkpoints
-checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
-checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
-                                 discriminator_optimizer=discriminator_optimizer,
-                                 generator=generator,
-                                 discriminator=discriminator)
+# Laden der Modelle (nicht die Optimierer)
+def load_models_from_checkpoint(checkpoint_dir):
+    # Finde die neuesten Generator- und Diskriminator-Dateien
+    generator_files = glob.glob(os.path.join(checkpoint_dir, "generator_epoch_*.h5"))
+    discriminator_files = glob.glob(os.path.join(checkpoint_dir, "discriminator_epoch_*.h5"))
 
-# Letzten Checkpoint laden
-latest = tf.train.latest_checkpoint(checkpoint_dir)
-if latest:
-    print("Letzten Checkpoint gefunden: ", latest)
-else:
-    print("Kein Checkpoint gefunden. Starte von vorn.")
+    # Sortiere die Dateien, um die neuesten zu finden
+    generator_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    discriminator_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+
+    if generator_files and discriminator_files:
+        latest_generator = generator_files[-1]
+        latest_discriminator = discriminator_files[-1]
+
+        # Lade die Modelle
+        loaded_generator = tf.keras.models.load_model(latest_generator)
+        loaded_discriminator = tf.keras.models.load_model(latest_discriminator)
+
+        # Extrahiere die Epoche aus dem Dateinamen
+        epoch = int(latest_generator.split('_')[-1].split('.')[0])
+
+        print(f"Generator geladen von: {latest_generator}")
+        print(f"Diskriminator geladen von: {latest_discriminator}")
+        print(f"Training wird ab Epoche {epoch + 1} fortgesetzt")
+
+        return loaded_generator, loaded_discriminator, epoch
+    else:
+        print("Keine Checkpoints gefunden. Starte Training von vorn.")
+        return None, None, 0
 
 # Trainingsschleife starten oder fortsetzen
 def start_training(input_images, EPOCHS, project_dir, checkpoint_dir):
@@ -228,13 +258,9 @@ def start_training(input_images, EPOCHS, project_dir, checkpoint_dir):
     answer = input("Soll das Training fortgesetzt werden? (j/n): ")
 
     if answer.lower() == 'j':
-        latest = tf.train.latest_checkpoint(checkpoint_dir)
-        if latest:
-            print("Lade Checkpoint: ", latest)
-            checkpoint.restore(latest)
-            # Extrahiere die Epoche aus dem Checkpoint-Pfad
-            initial_epoch = int(latest.split('-')[-1].split('.')[0])
-            print(f"Fortsetzen des Trainings ab Epoche {initial_epoch}")
+        generator, discriminator, initial_epoch = load_models_from_checkpoint(checkpoint_dir)
+        if generator and discriminator:
+            # Hier die geladenen Modelle verwenden
             train(input_images, EPOCHS, project_dir, checkpoint_dir, initial_epoch=initial_epoch)
         else:
             print("Kein Checkpoint gefunden. Starte Training von vorn.")
