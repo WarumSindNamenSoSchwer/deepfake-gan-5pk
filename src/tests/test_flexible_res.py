@@ -8,7 +8,7 @@ import time
 import glob
 
 # Gewünschte Auflösung (Quadratisch, muss durch 16 teilbar sein)
-gewollte_res = 64
+gewollte_res = 80
 
 # Daten laden und vorbereiten
 script_dir = os.path.dirname(os.path.abspath(__file__))

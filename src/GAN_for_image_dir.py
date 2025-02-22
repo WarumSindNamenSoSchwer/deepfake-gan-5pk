@@ -69,8 +69,7 @@ def make_generator():
 # Diskriminator-Modell erstellen
 def make_discriminator():
     model = keras.Sequential([
-        keras.layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
-                            input_shape=(128, 128, 1)),  # ✅ Hier 128x128 setzen
+        keras.layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same', input_shape=(128, 128, 1)),  # ✅ Hier 128x128 setzen
         keras.layers.LeakyReLU(alpha=0.2),
         keras.layers.Dropout(0.25),
 
