@@ -71,6 +71,26 @@ nachbaut, sollte DSGVO/GDPR, das deutsche Persönlichkeitsrecht und die
 EU-AI-Act-Regeln zu synthetischen Medien beachten und damit keine Bilder realer
 Personen ohne deren Einwilligung erzeugen.
 
+## Was ich rückblickend besser machen würde
+
+- **Datensatz:** viel mehr Bilder und sauber kuratiert — der winzige Datensatz war
+  die Hauptursache fürs Auswendiglernen.
+- **Batch-Größe:** echte Mini-Batches statt `BATCH_SIZE = len(images)`; so kann das
+  Modell überhaupt generalisieren.
+- **Data Augmentation:** Spiegeln, Crops, leichte Rotation/Helligkeit, um aus
+  wenig Daten mehr Varianz zu holen.
+- **Regularisierung & Stabilität:** Label-Smoothing, Noise auf Discriminator-Inputs,
+  evtl. WGAN-GP statt Standard-Loss gegen Mode Collapse.
+- **Architektur:** schrittweises Hochskalieren (Progressive Growing) oder eine
+  StyleGAN-artige Struktur statt eines flachen DCGAN.
+- **Farbe & Auflösung:** in RGB und höher als 128×128 trainieren.
+- **Messen statt schätzen:** FID/IS als Metrik, fixe Eval-Bilder über die Zeit, statt
+  nur per Auge zu beurteilen.
+- **Compute:** Training auf GPU — mehr Epochen bei größerem Datensatz sind sonst
+  kaum machbar.
+
+*Vielleicht komme ich zurück und probiere es mit der neuen Erfahrung noch einmal.*
+
 ## Lizenz
 
 Code: MIT (siehe `LICENSE`). Die schriftliche Arbeit und Bilder Dritter bleiben
@@ -135,6 +155,26 @@ provided for educational reference only. Anyone reproducing this work should
 respect GDPR, German Persönlichkeitsrecht, and the EU AI Act provisions on
 synthetic media, and should not use it to fabricate imagery of real people
 without consent.
+
+## What I'd do better in hindsight
+
+- **Dataset:** far more images, properly curated — the tiny dataset was the main
+  cause of memorisation.
+- **Batch size:** real mini-batches instead of `BATCH_SIZE = len(images)`, so the
+  model can actually generalise.
+- **Data augmentation:** flips, crops, mild rotation/brightness to squeeze more
+  variance out of little data.
+- **Regularisation & stability:** label smoothing, noise on discriminator inputs,
+  possibly WGAN-GP instead of the vanilla loss to fight mode collapse.
+- **Architecture:** progressive growing or a StyleGAN-like structure instead of a
+  shallow DCGAN.
+- **Color & resolution:** train in RGB and above 128×128.
+- **Measure, don't eyeball:** FID/IS as a metric and fixed eval samples over time
+  instead of judging by eye.
+- **Compute:** train on a GPU — more epochs on a larger dataset are otherwise
+  barely feasible.
+
+*Maybe I'll come back and give it another try with the experience I've gained.*
 
 ## License
 
